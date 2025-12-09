@@ -20,10 +20,24 @@ use Laravel\Sanctum\HasApiTokens;
 {
 
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable,HasApiTokens,HasUserBehaviour;
+    use HasFactory, Notifiable,HasApiTokens;
 
-    public function town():belongsTo{
+    public function town():BelongsTo{
         return $this->belongsTo(Town::class);
+    }
+
+    protected static function boot(){
+        parent::boot();
+        static::creating(function($user){
+            if ($user->role == 'student' || $user->role == 'restaurant' ) {
+                $user->verification_status = 'pending';
+                $user->verification_note = 'To have access to all money transactions,we need to verify you.Please upload the necessary documents and our team will activate your account in the next few days';
+            }
+        });
+
+        static::created(function($user):void{
+            //fire sms
+        });
     }
 
     /**
@@ -41,6 +55,12 @@ use Laravel\Sanctum\HasApiTokens;
         'balance',
         'email',
         'password',
+        'school',
+        'department',
+        'level',
+        'matricule',
+        'occupation',
+        'role'
      ];
 
 
@@ -64,7 +84,7 @@ use Laravel\Sanctum\HasApiTokens;
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'balance' => 'float'
+            'balance' => 'decimal:2'
         ];
     }
 }
