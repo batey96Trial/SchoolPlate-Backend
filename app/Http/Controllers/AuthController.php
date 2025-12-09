@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UserRequest;
-use App\Models\Admin;
-use App\Models\Donor;
-use App\Models\Student;
+use App\Http\Resources\UserResourceFactory;
 use App\Models\User;
-use Illuminate\Database\QueryException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use function Pest\Laravel\withCookie;
@@ -24,7 +22,6 @@ class AuthController extends Controller
     {
         $oldRefreshTokenValue = $request->cookie("SchoolPlate-refresh_token");
         $userId = Redis::get("refresh_token:$oldRefreshTokenValue");
-        // UserId not found meaning Token is expired or deleted,redirect to login
         if (!$userId) {
             return response()->json(
                 status: 401,
@@ -32,21 +29,22 @@ class AuthController extends Controller
             );
         }
 
-        $user = User::find($userId);
-        if (!$user) {
+        try {
+            $user = User::findOrFail($userId);
+        } catch (ModelNotFoundException $e) {
             return response()->json(
                 status: 404,
                 data: ['message' => 'User not found']
             );
         }
 
-        $newAccessToken = $user->createToken('_accessToken', expiresAt: now()->addMinutes(config('sanctum.expiration')))->plainTextToken;
+        $newAccessToken = $user->createToken('auth-tokens', expiresAt: now()->addMinutes(config('sanctum.expiration')))->plainTextToken;
         $newRefreshToken = Str::random(64);
         Redis::del("refresh_token:$oldRefreshTokenValue");
         Redis::setex("refresh_token:$newRefreshToken", config('sanctum.rt_expiration'), $user->id);
         return response()->json(
             data: [
-                'user' => $user,
+                'user' => UserResourceFactory::produce($user),
                 'token' => $newAccessToken
             ]
         )->withCookie(
@@ -69,18 +67,18 @@ class AuthController extends Controller
         ]);
         $user = User::where('telephone', $request->telephone)->first();
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(
-                status: 404,
-                data: ['status' => 'error', 'message' => 'Invalid Credentials']
-            );
+            throw ValidationException::withMessages([
+                'error' => 'Invalid Credentials'
+            ]);
         }
-        $accessToken = $user->createToken('_accessToken')->plainTextToken;
+        $user->tokens()->where('name', 'auth-token')->delete();
+        $accessToken = $user->createToken('auth-token', expiresAt: now()->addMinutes(config('sanctum.expiration')))->plainTextToken;
         $refreshToken = Str::random(64);
         Redis::setex("refresh_token:$refreshToken", config('sanctum.rt_expiration'), $user->id);
         return response()->json([
             'status' => 'success',
             'message' => 'Login successful',
-            'user' => $user,
+            'user' => UserResourceFactory::produce($user),
             'token' => $accessToken,
         ])->withCookie(
                 cookie: cookie(
@@ -108,59 +106,17 @@ class AuthController extends Controller
 
     public function register(UserRequest $request): JsonResponse
     {
-        try {
-            $role = $request->role;
-            $validated = $request->validated();
 
-            switch ($role) {
-                case 'student':
-                    $user = Student::create($validated);
-                    break;
-                case 'donor':
-                   $user = Donor::create($validated);
-                    break;
-                case 'admin':
-                    $user = Admin::create($validated);
-            
-                    break;
-                default:
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Invalid role'
-                    ], 422);
-            }
+        $validated = $request->validated();
 
+        /** @var User $user */
+        $user = DB::transaction(callback: fn(): User => User::create($validated));
 
-            $accessToken = $user->createToken('_accessToken')->plainTextToken;
-            $accessToken = $user->createToken('_accessToken')->plainTextToken;
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Registration successful',
-                'user' => $user,
-                'token' => $accessToken,
-            ], 201);
-
-
-        } catch (QueryException $e) {
-            // Database error
-            if ($e->getCode() === '23000') {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Phone number is already taken.',
-                ], 422);
-            }
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Database error: ' . $e->getMessage()
-            ], 500);
-        } catch (\Exception $e) {
-            // Any other unexpected error
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Registration successful',
+            'user' => UserResourceFactory::produce($user),
+        ], 201);
     }
 
 }
