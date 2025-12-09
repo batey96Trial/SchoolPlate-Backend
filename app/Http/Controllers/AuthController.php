@@ -25,19 +25,14 @@ class AuthController extends Controller
         if (!$userId) {
             return response()->json(
                 status: 401,
-                data: ['message' => 'Unauthorized Access']
+                data: [
+                        'status' => 'error',
+                        'message' => 'Unauthenticated'
+                    ]
             );
         }
 
-        try {
-            $user = User::findOrFail($userId);
-        } catch (ModelNotFoundException $e) {
-            return response()->json(
-                status: 404,
-                data: ['message' => 'User not found']
-            );
-        }
-
+        $user = User::findOrFail($userId);
         $newAccessToken = $user->createToken('auth-tokens', expiresAt: now()->addMinutes(config('sanctum.expiration')))->plainTextToken;
         $newRefreshToken = Str::random(64);
         Redis::del("refresh_token:$oldRefreshTokenValue");
@@ -67,8 +62,10 @@ class AuthController extends Controller
         ]);
         $user = User::where('telephone', $request->telephone)->first();
         if (!$user || !Hash::check($request->password, $user->password)) {
+            // manualy throw validation exception- refer to app.php for global state
             throw ValidationException::withMessages([
-                'error' => 'Invalid Credentials'
+                'status' => 'error',
+                'message' => 'Invalid Credentials'
             ]);
         }
         $user->tokens()->where('name', 'auth-token')->delete();
@@ -95,8 +92,9 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $refreshToken = $request->cookie("SchoolPlate-refresh_token");
+        Redis::del("refresh_token:$refreshToken");
         $request->user()->currentAccessToken()->delete();
-
         return response()->json([
             'status' => 'success',
             'message' => 'Logged out successfully.'
