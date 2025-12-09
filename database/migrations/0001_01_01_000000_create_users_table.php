@@ -23,7 +23,7 @@ return new class extends Migration {
             $table->string('matricule')->nullable()->unique();
             $table->string('department')->nullable();
             $table->string('level')->nullable();
-            $table->float('balance')->default(0.00);
+            $table->decimal(column: 'balance',places:2)->default(0.00);
             $table->enum('verification_status', ['pending', 'submitted', 'approved', 'rejected'])->nullable();
             $table->text('verification_note')->nullable();
             $table->timestamp('account_verified_at')->nullable();
