@@ -1,22 +1,22 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DonorController;
 use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
 
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::prefix("v1")->group(function(){
+    Route::controller(AuthController::class)->group(function () {
+    Route::get('/register', 'register');
+    Route::post('/login', 'login');
+    Route::post('/refresh-token','refreshToken');
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+});
 
-
-    Route::post('/student/{id}/documents', [DocumentController::class, 'index']);
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::middleware('auth:sanctum')->group(function(){
+        Route::apiResource('students',StudentController::class);
+        Route::apiResource('donors',DonorController::class);
+    });
 
 });
-    Route::get('/students', [StudentController::class, 'index'])->middleware('auth:sanctum')->name('students');
-
-Route::get('/refresh-token', [AuthController::class, 'refreshToken']);
-Route::get('/login',[AuthController::class,'login']);
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
-
-
