@@ -20,37 +20,41 @@ class UserRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-   public function rules(): array
-{
-    $role = $this->role;
+    public function rules(): array
+    {
+        $role = $this->role;
 
-    $rules = [
-        'name' => 'required|string|max:255',
-        'surname' => 'required|string|max:255',
-        'password' => [
-            'required',
-            'confirmed',
-            Password::min(8)
-                ->letters()
-                ->mixedCase()
-                ->numbers()
-                ->symbols()
-        ],
-        'occupation' => 'required|string',
-        'telephone' => ['required', 'regex:/^(?:\+237)?6[0-9]{8}$/'],
-        'role' => 'required|string|in:student,donor,admin',
-    ];
+        $rules = [
+            'name' => 'required|string|max:255',
+            'surname' => 'required|string|max:255',
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+            ],
+            'telephone' => ['required','unique:users,telephone', 'regex:/^(?:\+237)?6[0-9]{8}$/'],
+            'role' => 'required|string|in:student,donor,admin,restaurant',
+        ];
 
-    if ($role === 'student') {
-        $rules = array_merge($rules, [
-            'department' => 'required|string',
-            'matricule' => 'required|string',
-            'school' => 'required|string',
-            'level' => 'required|string',
-        ]);
+        if ($role == 'student') {
+            $rules = array_merge($rules, [
+                'department' => 'required|string',
+                'matricule' => 'required|string|unique:users,matricule',
+                'school' => 'required|string',
+                'level' => 'required|string',
+            ]);
+        }
+        if ($role == 'donor') {
+            $rules = array_merge($rules, [
+                'occupation' => 'required|string',
+            ]);
+        }
+
+        return $rules;
     }
-
-    return $rules;
-}
 
 }
