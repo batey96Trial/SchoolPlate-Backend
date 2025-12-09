@@ -35,23 +35,34 @@ A Laravel-based REST API for a food donation and student assistance platform tha
    composer install
 
 3. **Environment Configuration**
-    cp .env.example .env
-    php artisan key:generate
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
 4. **Configure Database**
-    DB_CONNECTION=mysql
-    DB_HOST=127.0.0.1
-    DB_PORT=3306
-    DB_DATABASE=schoolplate
-    DB_USERNAME=root
-    DB_PASSWORD=
+   
+   Edit `.env` file:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=zerofamine
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
 
 5. **Run Migrations**
-    php artisan migrate
+   ```bash
+   php artisan migrate
+   ```
 
 6. **Start Development Server**
-    php artisan serve
-    The API will be available at http://127.0.0.1:8000
+   ```bash
+   php artisan serve
+   ```
+
+   The API will be available at `http://127.0.0.1:8000`
 
 ### Contributing
 Thank you for considering contributing to this project. For issues and questions, please open an issue or PR on the repository.
