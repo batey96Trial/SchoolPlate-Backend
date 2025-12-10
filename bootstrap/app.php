@@ -1,10 +1,11 @@
 <?php
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->throttleWithRedis();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (ModelNotFoundException $e ) {
@@ -26,4 +27,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 404
             );
         });
+        $exceptions->render(function (AccessDeniedHttpException $e, $request) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => $e->getMessage() ?: 'Forbidden'
+        ], 403);
+    });
+    $exceptions->render(function (AuthorizationException $e, $request) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => $e->getMessage() ?: 'Forbidden'
+        ], 403);
+    });
     })->create();

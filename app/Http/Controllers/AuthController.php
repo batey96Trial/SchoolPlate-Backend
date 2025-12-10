@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\UserRequest;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResourceFactory;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use function Pest\Laravel\withCookie;
 
 class AuthController extends Controller
 {
@@ -23,13 +23,7 @@ class AuthController extends Controller
         $oldRefreshTokenValue = $request->cookie("SchoolPlate-refresh_token");
         $userId = Redis::get("refresh_token:$oldRefreshTokenValue");
         if (!$userId) {
-            return response()->json(
-                status: 401,
-                data: [
-                        'status' => 'error',
-                        'message' => 'Unauthenticated'
-                    ]
-            );
+            throw new AuthenticationException();
         }
 
         $user = User::findOrFail($userId);
@@ -54,12 +48,9 @@ class AuthController extends Controller
     }
 
 
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'telephone' => ['required', 'regex:/^(?:\+237)?[26][0-9]{8}$/'],
-            'password' => ['required'],
-        ]);
+        $request->validated();
         $user = User::where('telephone', $request->telephone)->first();
         if (!$user || !Hash::check($request->password, $user->password)) {
             // manualy throw validation exception- refer to app.php for global state
@@ -102,7 +93,7 @@ class AuthController extends Controller
     }
 
 
-    public function register(UserRequest $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
 
         $validated = $request->validated();
