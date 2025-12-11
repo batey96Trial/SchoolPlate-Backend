@@ -51,12 +51,12 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $request->validated();
-        $user = User::where('telephone', $request->telephone)->first();
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            // manualy throw validation exception- refer to app.php for global state
+        $user = User::where('telephone', $request->telephone)->firstOrFail();
+        if (!Hash::check($request->password, $user->password)) {
+            // Hash:check() doesn't throw error,we handle it ourself
             throw ValidationException::withMessages([
                 'status' => 'error',
-                'message' => 'Invalid Credentials'
+                'message' => 'Invalid Password'
             ]);
         }
         $user->tokens()->where('name', 'auth-token')->delete();
