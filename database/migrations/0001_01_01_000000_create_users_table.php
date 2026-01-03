@@ -12,23 +12,20 @@ return new class extends Migration {
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('surname');
+            $table->string('first_name');
+            $table->string('last_name');
             $table->string('avatar')->nullable();
             $table->string('telephone')->unique();
-            // $table->foreignId("town_id")->constrained()->restrictOnDelete();
-            $table->enum('role',["admin","student","donor","partner"])->nullable();
+            $table->enum('role', ["admin", "student", "donor", "partner"])->nullable();
             $table->string('occupation')->nullable();
             $table->string('school')->nullable();
             $table->string('matricule')->nullable()->unique();
             $table->string('department')->nullable();
             $table->string('level')->nullable();
-            $table->decimal(column: 'balance',places:2)->default(0.00);
-            $table->enum('verification_status', ['pending', 'submitted', 'approved', 'rejected'])->nullable();
+            $table->decimal(column: 'balance', places: 2)->default(0.00);
+            $table->enum('verification_status', ['pending', 'approved', 'rejected'])->nullable();
             $table->text('verification_note')->nullable();
             $table->timestamp('account_verified_at')->nullable();
-            $table->string('email')->unique()->nullable();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
@@ -63,6 +60,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::dropIfExists('users');
+        Schema::dropIfExists('student_documents');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }

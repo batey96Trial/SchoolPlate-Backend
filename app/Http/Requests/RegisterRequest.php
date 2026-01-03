@@ -25,8 +25,8 @@ class RegisterRequest extends FormRequest
         $role = $this->role;
 
         $rules = [
-            'name' => 'required|string|max:255',
-            'surname' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'password' => [
                 'required',
                 'confirmed',
@@ -36,7 +36,7 @@ class RegisterRequest extends FormRequest
                     ->numbers()
                     ->symbols()
             ],
-            'telephone' => ['required','unique:users,telephone', 'regex:/^(?:\+237)?6[0-9]{8}$/'],
+            'telephone' => ['required', 'unique:users,telephone', 'regex:/^(?:\+237)?6[0-9]{8}$/'],
             'role' => 'required|string|in:student,donor,admin,restaurant',
         ];
 
